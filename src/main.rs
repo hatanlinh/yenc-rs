@@ -1,85 +1,95 @@
 use std::path::PathBuf;
+use std::process;
 
 use clap::{Parser, Subcommand};
 
-use yenc::{decode, encode};
-
 #[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-struct Args {
+#[command(name = "yenc")]
+#[command(author, version, about = "SIMD-accelerated yEnc encoder/decoder", long_about = None)]
+struct Cli {
     #[command(subcommand)]
-    command: Option<Command>,
+    command: Command,
 
-    /// Turn debugging information on
-    #[arg(short, long)]
-    debug: bool,
+    /// Enable verbose output
+    #[arg(short, long, global = true)]
+    verbose: bool,
 }
 
 #[derive(Subcommand)]
 enum Command {
-    /// Decode
+    /// Decode a yEnc-encoded file
     Decode {
-        /// Input path
-        #[arg(short, long, required = true)]
-        input: Option<PathBuf>,
+        /// Input file (yEnc-encoded)
+        #[arg(short, long, value_name = "FILE")]
+        input: PathBuf,
 
-        /// Output path
-        #[arg(short, long, required = true)]
-        output: Option<PathBuf>,
+        /// Output file (decoded binary)
+        #[arg(short, long, value_name = "FILE")]
+        output: PathBuf,
     },
-
-    /// Encode
+    /// Encode a file to yEnc format
     Encode {
-        /// Input path
-        #[arg(short, long, required = true)]
-        input: Option<PathBuf>,
+        /// Input file (binary)
+        #[arg(short, long, value_name = "FILE")]
+        input: PathBuf,
 
-        /// Output path
-        #[arg(short, long, required = true)]
-        output: Option<PathBuf>,
+        /// Output file (yEnc-encoded)
+        #[arg(short, long, value_name = "FILE")]
+        output: PathBuf,
+
+        /// Filename to use in yEnc header (defaults to input filename)
+        #[arg(short, long, value_name = "NAME")]
+        name: Option<String>,
     },
 }
 
 fn main() {
-    let args = Args::parse();
+    let cli = Cli::parse();
 
-    if args.debug {
-        println!("Debug mode is on");
-    } else {
-        println!("Debug mode is off");
-    }
+    let result = match cli.command {
+        Command::Decode { input, output } => {
+            if cli.verbose {
+                println!("Decoding: {} -> {}", input.display(), output.display());
+            }
 
-    match &args.command {
-        Some(Command::Decode { input, output }) => {
-            match decode(
-                input.as_ref().unwrap().to_path_buf(),
-                output.as_ref().unwrap().to_path_buf(),
-                args.debug,
-            ) {
-                true => {
-                    println!("Decoded successfully")
+            match yenc::decode_file(&input, &output) {
+                Ok((header, trailer, bytes)) => {
+                    println!("> Decoded {} bytes", bytes);
+                    if cli.verbose {
+                        println!("  File: {}", header.name);
+                        println!("  Size: {} bytes", header.size);
+                        if let Some(t) = trailer {
+                            if let Some(crc) = t.crc32 {
+                                println!("  CRC32: {:#x}", crc);
+                            }
+                        }
+                    }
+                    Ok(())
                 }
-                false => {
-                    println!("Decode failed")
-                }
+                Err(e) => Err(e),
             }
         }
-        Some(Command::Encode { input, output }) => {
-            match encode(
-                input.as_ref().unwrap().to_path_buf(),
-                output.as_ref().unwrap().to_path_buf(),
-                args.debug,
-            ) {
-                true => {
-                    println!("Encoded successfully")
+        Command::Encode {
+            input,
+            output,
+            name,
+        } => {
+            if cli.verbose {
+                println!("Encoding: {} -> {}", input.display(), output.display());
+            }
+
+            match yenc::encode_file(&input, &output, name.as_deref()) {
+                Ok(bytes) => {
+                    println!("> Encoded {} bytes", bytes);
+                    Ok(())
                 }
-                false => {
-                    println!("Encode failed")
-                }
+                Err(e) => Err(e),
             }
         }
-        None => {
-            println!("No command specified!")
-        }
+    };
+
+    if let Err(e) = result {
+        eprintln!("Error: {}", e);
+        process::exit(1);
     }
 }
