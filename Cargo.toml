@@ -23,3 +23,11 @@ simd = []
 lto = true
 codegen-units = 1
 opt-level = 3
+
+[[bench]]
+name = "decode_bench"
+harness = false
+
+[[bench]]
+name = "encode_bench"
+harness = false
