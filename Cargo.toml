@@ -3,25 +3,23 @@ name = "yenc"
 version = "0.1.0"
 edition = "2024"
 rust-version = "1.85.0"
-authors = ["Linh Ha <linh.ha@llyn.net>"]
+authors = ["Linh Ha <linh@fseek.net>"]
 
 description = "Fast, SIMD-accelerated yEnc decoder/encoder"
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/hatanlinh13/yenc-rs"
 
+[dependencies]
+
+[dev-dependencies]
+criterion = "0.8.1"
+
+[features]
+default = []
+simd = []
+
 [profile.release]
 lto = true
 codegen-units = 1
 opt-level = 3
-
-[dependencies]
-clap = { version = "4.5.53", features = ["derive"], optional = true }
-
-[features]
-default = ["cli"]
-cli = ["dep:clap"]
-
-[[bin]]
-name = "yenc"
-required-features = ["cli"]
