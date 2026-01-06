@@ -16,8 +16,7 @@ fn test_encode_simple() {
     assert!(output_str.contains("name=test.bin"));
     assert!(output_str.contains("size=5"));
     assert!(output_str.contains("=yend"));
-
-    // TODO: Check encoded data
+    assert!(output_str.contains("*+,-=n"));
 }
 
 #[test]
@@ -30,8 +29,7 @@ fn test_encode_binary_data() {
 
     // Should have header, data, and trailer
     assert!(output.len() > input.len());
-
-    // TODO: Validate more
+    assert!(output.starts_with(b"=ybegin"));
 }
 
 #[test]
