@@ -1,6 +1,6 @@
 //! # yenc
 //!
-//! A fast, SIMD-accelerated Rust implementation of the yEnc binary encoding format.
+//! A SIMD-accelerated Rust implementation of the yEnc binary encoding format.
 //!
 //! ## Example
 //!
@@ -18,14 +18,40 @@
 //! assert_eq!(decoded, b"Hello, World!");
 //! assert_eq!(header.name, "hello.txt");
 //! ```
+//!
+//! ## Advanced Usage
+//!
+//! ```rust
+//! use yenc::{Decoder, Encoder};
+//!
+//! // Custom decoder options
+//! let mut output = Vec::new();
+//! let input = b"=ybegin line=128 size=5 name=test.bin\nKLMNO\n=yend size=5\n";
+//!
+//! let (header, _, _) = Decoder::new()
+//!     .strict()
+//!     .no_crc_check()
+//!     .decode(&input[..], &mut output)
+//!     .unwrap();
+//!
+//! // Custom encoder options
+//! let data = b"Hello";
+//! let mut encoded = Vec::new();
+//! Encoder::new()
+//!     .line_length(64)
+//!     .no_crc()
+//!     .encode(&data[..], &mut encoded, "file.bin")
+//!     .unwrap();
+//! ```
 
-pub mod decode;
-pub mod encode;
+mod consts;
+mod decode;
+mod encode;
 pub mod error;
 pub mod header;
 
-pub use decode::decode;
-pub use encode::encode;
+pub use decode::{Decoder, decode};
+pub use encode::{Encoder, encode};
 pub use error::{Result, YencError};
 pub use header::{YencHeader, YencTrailer};
 
@@ -49,7 +75,7 @@ pub fn decode_file<P: AsRef<Path>>(
 ) -> Result<(YencHeader, Option<YencTrailer>, usize)> {
     let input = BufReader::new(File::open(input_path)?);
     let output = BufWriter::new(File::create(output_path)?);
-    decode::decode(input, output)
+    decode(input, output)
 }
 
 /// Encode a file to yEnc format
@@ -79,5 +105,5 @@ pub fn encode_file<P: AsRef<Path>>(
             .unwrap_or("file.bin")
     });
 
-    encode::encode(input, output, name)
+    encode(input, output, name)
 }
