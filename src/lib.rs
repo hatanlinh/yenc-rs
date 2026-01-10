@@ -51,7 +51,7 @@ pub mod error;
 pub mod header;
 
 pub use decode::{Decoder, decode};
-pub use encode::{Encoder, encode};
+pub use encode::{Encoder, MultiPartInfo, encode, encode_part};
 pub use error::{Result, YencError};
 pub use header::{YencHeader, YencPart, YencTrailer};
 
