@@ -25,7 +25,7 @@ fn test_long_filename() {
     yenc::encode(&original[..], &mut encoded, &long_name).unwrap();
 
     let mut decoded = Vec::new();
-    let (header, _, _) = yenc::decode(&encoded[..], &mut decoded).unwrap();
+    let (header, _, _, _) = yenc::decode(&encoded[..], &mut decoded).unwrap();
 
     assert_eq!(header.name, long_name);
 }

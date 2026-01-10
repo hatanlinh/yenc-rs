@@ -50,6 +50,49 @@ impl YencHeader {
     }
 }
 
+/// yEnc part information (for multi-part files)
+#[derive(Debug, Clone, PartialEq)]
+pub struct YencPart {
+    pub begin: usize,
+    pub end: usize,
+}
+
+impl YencPart {
+    /// Parse a yEnc part line (e.g., "=ypart begin=1 end=100000")
+    pub fn parse(line: &str) -> Result<Self> {
+        if !line.starts_with("=ypart ") {
+            return Err(YencError::InvalidHeader(
+                "Part line must start with '=ypart'".to_string(),
+            ));
+        }
+
+        let mut begin = None;
+        let mut end = None;
+
+        for token in line[7..].split_whitespace() {
+            if let Some((key, value)) = token.split_once('=') {
+                match key {
+                    "begin" => begin = value.parse().ok(),
+                    "end" => end = value.parse().ok(),
+                    _ => {}
+                }
+            }
+        }
+
+        Ok(YencPart {
+            begin: begin.ok_or_else(|| YencError::MissingField("begin".to_string()))?,
+            end: end.ok_or_else(|| YencError::MissingField("end".to_string()))?,
+        })
+    }
+
+    /// Calculate the expected part size (end - begin + 1)
+    ///
+    /// Note: begin and end are 1-based inclusive positions
+    pub fn size(&self) -> usize {
+        self.end - self.begin + 1
+    }
+}
+
 /// yEnc trailer
 #[derive(Debug, Clone, PartialEq)]
 pub struct YencTrailer {
@@ -113,5 +156,40 @@ mod tests {
         let trailer = YencTrailer::parse(line).unwrap();
         assert_eq!(trailer.size, 123456);
         assert_eq!(trailer.crc32, Some(0xabcd1234));
+    }
+
+    #[test]
+    fn test_parse_part() {
+        let line = "=ypart begin=1 end=100000";
+        let part = YencPart::parse(line).unwrap();
+        assert_eq!(part.begin, 1);
+        assert_eq!(part.end, 100000);
+        assert_eq!(part.size(), 100000);
+    }
+
+    #[test]
+    fn test_parse_part_size_calculation() {
+        let line = "=ypart begin=400001 end=500000";
+        let part = YencPart::parse(line).unwrap();
+        assert_eq!(part.size(), 100000);
+    }
+
+    #[test]
+    fn test_parse_multipart_header() {
+        let line = "=ybegin part=1 total=10 line=128 size=500000 name=mybinary.dat";
+        let header = YencHeader::parse(line).unwrap();
+        assert_eq!(header.name, "mybinary.dat");
+        assert_eq!(header.size, 500000);
+        assert_eq!(header.part, Some(1));
+        assert_eq!(header.total, Some(10));
+    }
+
+    #[test]
+    fn test_parse_multipart_trailer() {
+        let line = "=yend size=100000 part=1 pcrc32=abcdef12";
+        let trailer = YencTrailer::parse(line).unwrap();
+        assert_eq!(trailer.size, 100000);
+        assert_eq!(trailer.part, Some(1));
+        assert_eq!(trailer.pcrc32, Some(0xabcdef12));
     }
 }

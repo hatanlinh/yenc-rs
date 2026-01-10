@@ -14,7 +14,7 @@
 //!
 //! // Decoding
 //! let mut decoded = Vec::new();
-//! let (header, trailer, _) = yenc::decode(&encoded[..], &mut decoded).unwrap();
+//! let (header, _, _, _) = yenc::decode(&encoded[..], &mut decoded).unwrap();
 //! assert_eq!(decoded, b"Hello, World!");
 //! assert_eq!(header.name, "hello.txt");
 //! ```
@@ -28,7 +28,7 @@
 //! let mut output = Vec::new();
 //! let input = b"=ybegin line=128 size=5 name=test.bin\nKLMNO\n=yend size=5\n";
 //!
-//! let (header, _, _) = Decoder::new()
+//! let (_header, _part, _trailer, _size) = Decoder::new()
 //!     .strict()
 //!     .no_crc_check()
 //!     .decode(&input[..], &mut output)
@@ -53,7 +53,7 @@ pub mod header;
 pub use decode::{Decoder, decode};
 pub use encode::{Encoder, encode};
 pub use error::{Result, YencError};
-pub use header::{YencHeader, YencTrailer};
+pub use header::{YencHeader, YencPart, YencTrailer};
 
 use std::fs::File;
 use std::io::{BufReader, BufWriter};
@@ -68,11 +68,13 @@ use std::path::Path;
 /// * `output_path` - Path where decoded data will be written
 ///
 /// # Returns
-/// A tuple of (header, trailer, bytes_written)
+/// A tuple of (header, part, trailer, bytes_written)
+/// - For single-part files: part will be None
+/// - For multi-part files: part contains begin/end byte positions
 pub fn decode_file<P: AsRef<Path>>(
     input_path: P,
     output_path: P,
-) -> Result<(YencHeader, Option<YencTrailer>, usize)> {
+) -> Result<(YencHeader, Option<YencPart>, Option<YencTrailer>, usize)> {
     let input = BufReader::new(File::open(input_path)?);
     let output = BufWriter::new(File::create(output_path)?);
     decode(input, output)

@@ -9,12 +9,13 @@ fn test_decode_simple() {
                   =yend size=5\n";
 
     let mut output = Vec::new();
-    let (header, trailer, size) = decode(&input[..], &mut output).unwrap();
+    let (header, part, trailer, size) = decode(&input[..], &mut output).unwrap();
 
     assert_eq!(header.name, "test.bin");
     assert_eq!(header.size, 5);
     assert_eq!(size, 5);
     assert_eq!(output, vec![23, 24, 25, 26, 27]);
+    assert!(part.is_none()); // Single-part file
     assert!(trailer.is_some());
 }
 
