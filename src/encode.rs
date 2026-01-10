@@ -2,6 +2,8 @@
 
 use std::io::{Read, Write};
 
+use crc32fast::Hasher;
+
 use crate::consts::{ESCAPE_CHAR, ESCAPE_OFFSET, ESCAPING_CHARS, LINE_LENGTH, OFFSET};
 use crate::error::Result;
 
@@ -75,6 +77,16 @@ impl Encoder {
         reader.read_to_end(&mut input_data)?;
 
         let size = input_data.len();
+
+        // Compute CRC32 of original data if enabled
+        let crc32 = if self.compute_crc {
+            let mut hasher = Hasher::new();
+            hasher.update(&input_data);
+            Some(hasher.finalize())
+        } else {
+            None
+        };
+
         writeln!(
             writer,
             "=ybegin line={} size={} name={}",
@@ -103,9 +115,9 @@ impl Encoder {
             writeln!(writer)?;
         }
 
-        if self.compute_crc {
-            // TODO: Compute actual CRC32
-            writeln!(writer, "=yend size={}", size)?;
+        // Write trailer with CRC32 if computed
+        if let Some(crc) = crc32 {
+            writeln!(writer, "=yend size={} crc32={:08x}", size, crc)?;
         } else {
             writeln!(writer, "=yend size={}", size)?;
         }
@@ -142,5 +154,24 @@ mod tests {
         let output_str = String::from_utf8(output).unwrap();
         assert!(output_str.contains("=ybegin"));
         assert!(output_str.contains("name=test.bin"));
+
+        // Verify CRC32 is present (default behavior)
+        assert!(output_str.contains("crc32="));
+        let crc_line = output_str.lines().last().unwrap();
+        assert!(crc_line.starts_with("=yend"));
+
+        // CRC32 for [0, 1, 2, 3, 4] is 0x515ad3cc
+        assert!(crc_line.contains("crc32=515ad3cc"));
+    }
+
+    #[test]
+    fn test_encode_no_crc() {
+        let input = vec![0u8, 1, 2, 3, 4];
+        let mut output = Vec::new();
+
+        Encoder::new().no_crc().encode(&input[..], &mut output, "test.bin").unwrap();
+
+        let output_str = String::from_utf8(output).unwrap();
+        assert!(!output_str.contains("crc32="));
     }
 }
