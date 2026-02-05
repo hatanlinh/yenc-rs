@@ -8,7 +8,7 @@ authors = ["Linh Ha <linh@fseek.net>"]
 description = "Fast, SIMD-accelerated yEnc decoder/encoder"
 license = "MIT"
 readme = "README.md"
-repository = "https://github.com/hatanlinh13/yenc-rs"
+repository = "https://github.com/hatanlinh/yenc-rs"
 
 [dependencies]
 crc32fast = "1.5.0"
