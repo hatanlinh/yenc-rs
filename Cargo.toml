@@ -5,7 +5,7 @@ edition = "2024"
 rust-version = "1.85.0"
 authors = ["Linh Ha <linh@fseek.net>"]
 
-description = "Fast, SIMD-accelerated yEnc decoder/encoder"
+description = "Rust yEnc decoder/encoder"
 license = "MIT"
 readme = "README.md"
 repository = "https://github.com/hatanlinh/yenc-rs"

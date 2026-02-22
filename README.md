@@ -1,2 +1,2 @@
 # yenc-rs
-SIMD accelerated implementation of yEnc format in Rust
+A Rust implementation of yEnc format encoder/decoder.

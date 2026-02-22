@@ -1,6 +1,6 @@
 //! # yenc
 //!
-//! A SIMD-accelerated Rust implementation of the yEnc binary encoding format.
+//! A Rust implementation of the yEnc binary encoding format.
 //!
 //! ## Example
 //!
